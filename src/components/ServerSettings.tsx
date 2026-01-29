@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Progress } from '@/components/ui/progress'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from 'sonner'
 import {
   WifiHigh,
@@ -195,7 +196,7 @@ export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsPr
         </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <ScrollArea className="flex-1">
         <div className="p-6 space-y-6 pb-8">
           <Card>
             <CardHeader>
@@ -708,7 +709,7 @@ export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsPr
             </CardContent>
           </Card>
         </div>
-      </div>
+      </ScrollArea>
 
       <div className="p-6 border-t border-border bg-card flex-shrink-0 sticky bottom-0">
         <div className="flex gap-2 justify-end">

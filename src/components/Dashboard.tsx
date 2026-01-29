@@ -548,7 +548,7 @@ export function Dashboard({
       </div>
 
       <Dialog open={!!serverSettingsProject} onOpenChange={() => setServerSettingsProject(null)}>
-        <DialogContent className="max-w-[600px] p-0 gap-0">
+        <DialogContent className="max-w-[600px] max-h-[90vh] p-0 gap-0 overflow-hidden flex flex-col">
           {serverSettingsProject && (() => {
             const currentProject = projects.find(p => p.id === serverSettingsProject.id) || serverSettingsProject
             return (
