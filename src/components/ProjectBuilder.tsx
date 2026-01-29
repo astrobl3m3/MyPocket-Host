@@ -22,6 +22,7 @@ import {
   Circle,
   Moon,
   Sun,
+  Globe,
 } from '@phosphor-icons/react'
 import { ComponentRenderer } from './ComponentRenderer'
 import { ComponentEditor } from './ComponentEditor'
@@ -278,6 +279,19 @@ export function ProjectBuilder({ project, onSave, onBack }: ProjectBuilderProps)
                 <Moon size={16} weight="fill" />
               )}
             </Button>
+            {serverSettings.isPublished && serverSettings.publishedUrl && (
+              <>
+                <Button
+                  variant="default"
+                  onClick={() => window.open(serverSettings.publishedUrl || '', '_blank')}
+                  className="gap-2 bg-green-600 hover:bg-green-700"
+                >
+                  <Globe size={16} weight="fill" />
+                  Open Online
+                </Button>
+                <Separator orientation="vertical" className="h-6" />
+              </>
+            )}
             <Button
               variant={serverSettings.enabled ? 'default' : 'outline'}
               onClick={() => setShowServerSettings(true)}

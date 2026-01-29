@@ -417,6 +417,12 @@ export function Dashboard({
                               <Eye size={16} className="mr-2" />
                               Preview
                             </DropdownMenuItem>
+                            {project.serverSettings?.isPublished && project.serverSettings?.publishedUrl && (
+                              <DropdownMenuItem onClick={() => window.open(project.serverSettings?.publishedUrl || '', '_blank')}>
+                                <Globe size={16} className="mr-2" />
+                                Open Online Address
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem onClick={() => setServerSettingsProject(project)}>
                               <WifiHigh size={16} className="mr-2" />
                               Server Settings
@@ -483,18 +489,33 @@ export function Dashboard({
                                   Published URL
                                 </span>
                               </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  navigator.clipboard.writeText(project.serverSettings?.publishedUrl || '')
-                                  toast.success('URL copied to clipboard')
-                                }}
-                                className="h-5 w-5 p-0"
-                              >
-                                <Copy size={10} className="text-green-600 dark:text-green-400" />
-                              </Button>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    window.open(project.serverSettings?.publishedUrl || '', '_blank')
+                                  }}
+                                  className="h-5 w-5 p-0"
+                                  title="Open in new tab"
+                                >
+                                  <Globe size={10} className="text-green-600 dark:text-green-400" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    navigator.clipboard.writeText(project.serverSettings?.publishedUrl || '')
+                                    toast.success('URL copied to clipboard')
+                                  }}
+                                  className="h-5 w-5 p-0"
+                                  title="Copy URL"
+                                >
+                                  <Copy size={10} className="text-green-600 dark:text-green-400" />
+                                </Button>
+                              </div>
                             </div>
                             <code className="text-[11px] text-green-800 dark:text-green-300 font-code break-all">
                               {project.serverSettings.publishedUrl}
