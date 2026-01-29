@@ -123,8 +123,8 @@ export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsPr
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="p-6 border-b border-border">
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="p-6 border-b border-border flex-shrink-0">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-[20px] font-semibold">Server & Access Point</h2>
           <Button variant="ghost" size="sm" onClick={onClose}>
@@ -136,8 +136,8 @@ export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsPr
         </p>
       </div>
 
-      <ScrollArea className="flex-1">
-        <div className="p-6 space-y-6">
+      <ScrollArea className="flex-1 overflow-y-auto">
+        <div className="p-6 space-y-6 pb-8">
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -395,7 +395,7 @@ export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsPr
         </div>
       </ScrollArea>
 
-      <div className="p-6 border-t border-border bg-card">
+      <div className="p-6 border-t border-border bg-card flex-shrink-0">
         <div className="flex gap-2 justify-end">
           <Button variant="outline" onClick={onClose}>
             Cancel
