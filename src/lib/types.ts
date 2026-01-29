@@ -6,6 +6,27 @@ export interface ServerSettings {
   isPublished: boolean
   publishedUrl?: string
   lastPublished?: number
+  ssl?: {
+    enabled: boolean
+    certPath?: string
+    keyPath?: string
+    autoGenerate?: boolean
+  }
+  metrics?: ProjectMetrics
+}
+
+export interface ProjectMetrics {
+  totalRequests: number
+  bandwidthUsed: number
+  lastAccessed?: number
+  requestsHistory: RequestLog[]
+}
+
+export interface RequestLog {
+  timestamp: number
+  bytesTransferred: number
+  path: string
+  method: string
 }
 
 export interface Project {

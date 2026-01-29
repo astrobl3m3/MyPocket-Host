@@ -36,10 +36,13 @@ import {
   Power,
   CheckSquare,
   Globe,
+  Moon,
+  Sun,
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { duplicateProject, exportProjectAsJSON, downloadFile } from '@/lib/project-utils'
 import { ServerSettings } from './ServerSettings'
+import { useTheme } from '@/hooks/use-theme'
 
 interface DashboardProps {
   projects: Project[]
@@ -68,6 +71,7 @@ export function Dashboard({
   const [serverSettingsProject, setServerSettingsProject] = useState<Project | null>(null)
   const [selectedProjects, setSelectedProjects] = useState<Set<string>>(new Set())
   const [bulkMenuOpen, setBulkMenuOpen] = useState(false)
+  const { theme, toggleTheme } = useTheme()
 
   const activeProjects = projects.filter(p => !p.isArchived)
   const archivedProjects = projects.filter(p => p.isArchived)
@@ -164,25 +168,34 @@ export function Dashboard({
           password: '',
           isPublished: false,
         }
-        if (settings.enabled) {
-          onUpdateProject({
-            ...project,
-            serverSettings: {
-              ...settings,
-              isPublished: true,
-              publishedUrl: `http://${settings.accessPointName}.local:${settings.port}`,
-              lastPublished: Date.now(),
+        
+        const protocol = settings.ssl?.enabled ? 'https' : 'http'
+        const publishedUrl = `${protocol}://${settings.accessPointName}.local:${settings.port}`
+        
+        onUpdateProject({
+          ...project,
+          serverSettings: {
+            ...settings,
+            enabled: true,
+            isPublished: true,
+            publishedUrl,
+            lastPublished: Date.now(),
+            metrics: settings.metrics || {
+              totalRequests: 0,
+              bandwidthUsed: 0,
+              requestsHistory: [],
+              lastAccessed: Date.now(),
             },
-          })
-          count++
-        }
+          },
+        })
+        count++
       }
     })
     setSelectedProjects(new Set())
     if (count > 0) {
-      toast.success(`${count} project${count !== 1 ? 's' : ''} published`)
+      toast.success(`${count} project${count !== 1 ? 's' : ''} published and online`)
     } else {
-      toast.error('No projects with enabled servers selected')
+      toast.error('No projects selected')
     }
   }
 
@@ -227,6 +240,18 @@ export function Dashboard({
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button 
+              onClick={toggleTheme} 
+              variant="outline" 
+              size="icon"
+              className="rounded-full"
+            >
+              {theme === 'dark' ? (
+                <Sun size={20} weight="fill" />
+              ) : (
+                <Moon size={20} weight="fill" />
+              )}
+            </Button>
             <Button onClick={onImportProject} variant="outline" size="lg" className="gap-2">
               <Download size={20} />
               Import
@@ -445,31 +470,54 @@ export function Dashboard({
                     </CardHeader>
                     <CardContent className="relative">
                       {project.serverSettings?.isPublished && project.serverSettings?.publishedUrl && (
-                        <div className="mb-3 p-2 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-md">
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-2">
-                              <Globe size={12} className="text-green-600" />
-                              <span className="text-[11px] font-medium text-green-700 dark:text-green-400">
-                                Published URL
-                              </span>
+                        <>
+                          <div className="mb-3 p-2 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-md">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-2">
+                                <Globe size={12} className="text-green-600 dark:text-green-400" />
+                                <span className="text-[11px] font-medium text-green-700 dark:text-green-400">
+                                  Published URL
+                                </span>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  navigator.clipboard.writeText(project.serverSettings?.publishedUrl || '')
+                                  toast.success('URL copied to clipboard')
+                                }}
+                                className="h-5 w-5 p-0"
+                              >
+                                <Copy size={10} className="text-green-600 dark:text-green-400" />
+                              </Button>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                navigator.clipboard.writeText(project.serverSettings?.publishedUrl || '')
-                                toast.success('URL copied to clipboard')
-                              }}
-                              className="h-5 w-5 p-0"
-                            >
-                              <Copy size={10} className="text-green-600" />
-                            </Button>
+                            <code className="text-[11px] text-green-800 dark:text-green-300 font-code break-all">
+                              {project.serverSettings.publishedUrl}
+                            </code>
                           </div>
-                          <code className="text-[11px] text-green-800 dark:text-green-300 font-code break-all">
-                            {project.serverSettings.publishedUrl}
-                          </code>
-                        </div>
+                          
+                          {project.serverSettings.metrics && (
+                            <div className="mb-3 grid grid-cols-2 gap-2">
+                              <div className="p-2 bg-muted/50 rounded-md">
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">
+                                  Requests
+                                </p>
+                                <p className="text-[14px] font-bold">
+                                  {project.serverSettings.metrics.totalRequests || 0}
+                                </p>
+                              </div>
+                              <div className="p-2 bg-muted/50 rounded-md">
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">
+                                  Bandwidth
+                                </p>
+                                <p className="text-[14px] font-bold">
+                                  {((project.serverSettings.metrics.bandwidthUsed || 0) / 1024).toFixed(1)}KB
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </>
                       )}
                       <div className="flex items-center justify-between text-[13px] text-muted-foreground">
                         <span>

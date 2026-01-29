@@ -20,6 +20,8 @@ import {
   Users,
   WifiHigh,
   Circle,
+  Moon,
+  Sun,
 } from '@phosphor-icons/react'
 import { ComponentRenderer } from './ComponentRenderer'
 import { ComponentEditor } from './ComponentEditor'
@@ -27,6 +29,7 @@ import { ServerSettings } from './ServerSettings'
 import { componentFactories, componentLabels } from '@/lib/component-factory'
 import { generateHTML, downloadFile } from '@/lib/project-utils'
 import { toast } from 'sonner'
+import { useTheme } from '@/hooks/use-theme'
 
 interface ProjectBuilderProps {
   project: Project
@@ -43,6 +46,7 @@ export function ProjectBuilder({ project, onSave, onBack }: ProjectBuilderProps)
   const [historyIndex, setHistoryIndex] = useState(0)
   const [copiedComponent, setCopiedComponent] = useState<Component | null>(null)
   const [showServerSettings, setShowServerSettings] = useState(false)
+  const { theme, toggleTheme } = useTheme()
   const [serverSettings, setServerSettings] = useState<ServerSettingsType>(
     project.serverSettings || {
       enabled: false,
@@ -262,6 +266,18 @@ export function ProjectBuilder({ project, onSave, onBack }: ProjectBuilderProps)
               Redo
             </Button>
             <Separator orientation="vertical" className="h-6" />
+            <Button 
+              onClick={toggleTheme} 
+              variant="ghost" 
+              size="icon"
+              className="rounded-full"
+            >
+              {theme === 'dark' ? (
+                <Sun size={16} weight="fill" />
+              ) : (
+                <Moon size={16} weight="fill" />
+              )}
+            </Button>
             <Button
               variant={serverSettings.enabled ? 'default' : 'outline'}
               onClick={() => setShowServerSettings(true)}

@@ -372,3 +372,40 @@ export function generateCSV(headers: string[], rows: string[][]): string {
   
   return csvLines.join('\n')
 }
+
+export function simulateMetricsUpdate(project: Project): Project {
+  if (!project.serverSettings?.isPublished) {
+    return project
+  }
+
+  const currentMetrics = project.serverSettings.metrics || {
+    totalRequests: 0,
+    bandwidthUsed: 0,
+    requestsHistory: [],
+  }
+
+  const methods = ['GET', 'POST', 'PUT', 'DELETE']
+  const paths = ['/', '/index.html', '/about', '/contact', '/api/data']
+  
+  const newRequest = {
+    timestamp: Date.now(),
+    bytesTransferred: Math.floor(Math.random() * 50000) + 5000,
+    path: paths[Math.floor(Math.random() * paths.length)],
+    method: methods[Math.floor(Math.random() * methods.length)],
+  }
+
+  const updatedHistory = [...currentMetrics.requestsHistory, newRequest]
+  
+  return {
+    ...project,
+    serverSettings: {
+      ...project.serverSettings,
+      metrics: {
+        totalRequests: currentMetrics.totalRequests + 1,
+        bandwidthUsed: currentMetrics.bandwidthUsed + newRequest.bytesTransferred,
+        lastAccessed: Date.now(),
+        requestsHistory: updatedHistory.slice(-10),
+      },
+    },
+  }
+}

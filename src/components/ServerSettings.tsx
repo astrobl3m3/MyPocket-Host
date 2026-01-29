@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
 import {
   WifiHigh,
@@ -19,6 +20,10 @@ import {
   CloudArrowUp,
   CloudArrowDown,
   Circle,
+  ShieldCheck,
+  ChartBar,
+  HardDrives,
+  Clock,
 } from '@phosphor-icons/react'
 import type { ServerSettings as ServerSettingsType } from '@/lib/types'
 
@@ -32,6 +37,36 @@ export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsPr
   const [localSettings, setLocalSettings] = useState<ServerSettingsType>(settings)
   const [isChecking, setIsChecking] = useState(false)
   const [serverStatus, setServerStatus] = useState<'online' | 'offline' | 'checking'>('offline')
+
+  useEffect(() => {
+    if (!localSettings.ssl) {
+      setLocalSettings({
+        ...localSettings,
+        ssl: {
+          enabled: false,
+          autoGenerate: true,
+        },
+      })
+    }
+    if (!localSettings.metrics) {
+      setLocalSettings({
+        ...localSettings,
+        metrics: {
+          totalRequests: 0,
+          bandwidthUsed: 0,
+          requestsHistory: [],
+        },
+      })
+    }
+  }, [])
+
+  const formatBytes = (bytes: number): string => {
+    if (bytes === 0) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`
+  }
 
   const handleToggleServer = () => {
     const newEnabled = !localSettings.enabled
@@ -54,13 +89,25 @@ export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsPr
     }
 
     const newPublished = !localSettings.isPublished
-    const newUrl = newPublished ? `http://${localSettings.accessPointName}.local:${localSettings.port}` : undefined
+    const protocol = localSettings.ssl?.enabled ? 'https' : 'http'
+    const newUrl = newPublished ? `${protocol}://${localSettings.accessPointName}.local:${localSettings.port}` : undefined
+    
+    const newMetrics = localSettings.metrics || {
+      totalRequests: 0,
+      bandwidthUsed: 0,
+      requestsHistory: [],
+    }
+
+    if (newPublished) {
+      newMetrics.lastAccessed = Date.now()
+    }
     
     setLocalSettings({
       ...localSettings,
       isPublished: newPublished,
       publishedUrl: newUrl,
       lastPublished: newPublished ? Date.now() : localSettings.lastPublished,
+      metrics: newMetrics,
     })
 
     if (newPublished) {
@@ -335,11 +382,274 @@ export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsPr
                         Published {new Date(localSettings.lastPublished).toLocaleString()}
                       </p>
                     )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const methods = ['GET', 'POST', 'PUT', 'DELETE']
+                        const paths = ['/', '/index.html', '/about', '/contact', '/api/data']
+                        
+                        const newRequest = {
+                          timestamp: Date.now(),
+                          bytesTransferred: Math.floor(Math.random() * 50000) + 5000,
+                          path: paths[Math.floor(Math.random() * paths.length)],
+                          method: methods[Math.floor(Math.random() * methods.length)],
+                        }
+
+                        const currentMetrics = localSettings.metrics || {
+                          totalRequests: 0,
+                          bandwidthUsed: 0,
+                          requestsHistory: [],
+                        }
+
+                        const updatedHistory = [...currentMetrics.requestsHistory, newRequest]
+                        
+                        setLocalSettings({
+                          ...localSettings,
+                          metrics: {
+                            totalRequests: currentMetrics.totalRequests + 1,
+                            bandwidthUsed: currentMetrics.bandwidthUsed + newRequest.bytesTransferred,
+                            lastAccessed: Date.now(),
+                            requestsHistory: updatedHistory.slice(-10),
+                          },
+                        })
+                        
+                        toast.success('Simulated request recorded')
+                      }}
+                      className="w-full text-[11px]"
+                    >
+                      Simulate Request (Demo)
+                    </Button>
                   </div>
                 </>
               )}
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-blue-500/10">
+                  <ShieldCheck size={20} weight="bold" className="text-blue-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-[16px]">SSL/HTTPS Configuration</CardTitle>
+                  <CardDescription className="text-[13px]">
+                    Secure your connection with SSL certificates
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <LockKey size={20} weight="bold" className="text-foreground" />
+                  <div>
+                    <p className="text-[14px] font-medium">Enable SSL/HTTPS</p>
+                    <p className="text-[12px] text-muted-foreground">
+                      Use encrypted connections
+                    </p>
+                  </div>
+                </div>
+                <Switch 
+                  checked={localSettings.ssl?.enabled || false}
+                  onCheckedChange={(checked) => {
+                    setLocalSettings({
+                      ...localSettings,
+                      ssl: {
+                        ...localSettings.ssl,
+                        enabled: checked,
+                        autoGenerate: localSettings.ssl?.autoGenerate ?? true,
+                      },
+                    })
+                    if (checked && localSettings.isPublished) {
+                      const protocol = 'https'
+                      const newUrl = `${protocol}://${localSettings.accessPointName}.local:${localSettings.port}`
+                      setLocalSettings({
+                        ...localSettings,
+                        publishedUrl: newUrl,
+                        ssl: {
+                          ...localSettings.ssl,
+                          enabled: checked,
+                          autoGenerate: localSettings.ssl?.autoGenerate ?? true,
+                        },
+                      })
+                    }
+                  }}
+                  disabled={!localSettings.enabled}
+                />
+              </div>
+
+              {localSettings.ssl?.enabled && (
+                <>
+                  <Separator />
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle size={16} className="text-blue-600" />
+                        <span className="text-[12px] font-medium text-blue-700 dark:text-blue-400">
+                          Auto-generate Self-Signed Certificate
+                        </span>
+                      </div>
+                      <Switch
+                        checked={localSettings.ssl?.autoGenerate ?? true}
+                        onCheckedChange={(checked) => {
+                          setLocalSettings({
+                            ...localSettings,
+                            ssl: {
+                              ...localSettings.ssl,
+                              enabled: true,
+                              autoGenerate: checked,
+                            },
+                          })
+                        }}
+                      />
+                    </div>
+
+                    {!localSettings.ssl?.autoGenerate && (
+                      <>
+                        <div className="space-y-2">
+                          <Label htmlFor="cert-path">Certificate Path (.crt)</Label>
+                          <Input
+                            id="cert-path"
+                            value={localSettings.ssl?.certPath || ''}
+                            onChange={(e) => {
+                              setLocalSettings({
+                                ...localSettings,
+                                ssl: {
+                                  ...localSettings.ssl,
+                                  enabled: true,
+                                  certPath: e.target.value,
+                                },
+                              })
+                            }}
+                            placeholder="/path/to/certificate.crt"
+                            className="font-code text-[13px]"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="key-path">Private Key Path (.key)</Label>
+                          <Input
+                            id="key-path"
+                            value={localSettings.ssl?.keyPath || ''}
+                            onChange={(e) => {
+                              setLocalSettings({
+                                ...localSettings,
+                                ssl: {
+                                  ...localSettings.ssl,
+                                  enabled: true,
+                                  keyPath: e.target.value,
+                                },
+                              })
+                            }}
+                            placeholder="/path/to/privatekey.key"
+                            className="font-code text-[13px]"
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {localSettings.isPublished && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-purple-500/10">
+                    <ChartBar size={20} weight="bold" className="text-purple-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-[16px]">Usage Metrics</CardTitle>
+                    <CardDescription className="text-[13px]">
+                      Monitor traffic and bandwidth usage
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Globe size={16} className="text-muted-foreground" />
+                      <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">
+                        Total Requests
+                      </span>
+                    </div>
+                    <p className="text-[24px] font-bold">
+                      {localSettings.metrics?.totalRequests || 0}
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <HardDrives size={16} className="text-muted-foreground" />
+                      <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">
+                        Bandwidth
+                      </span>
+                    </div>
+                    <p className="text-[24px] font-bold">
+                      {formatBytes(localSettings.metrics?.bandwidthUsed || 0)}
+                    </p>
+                  </div>
+                </div>
+
+                {localSettings.metrics?.lastAccessed && (
+                  <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+                    <Clock size={16} className="text-muted-foreground" />
+                    <div>
+                      <p className="text-[12px] text-muted-foreground">Last Accessed</p>
+                      <p className="text-[13px] font-medium">
+                        {new Date(localSettings.metrics.lastAccessed).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[12px]">
+                    <span className="text-muted-foreground">Bandwidth Usage</span>
+                    <span className="font-medium">
+                      {((localSettings.metrics?.bandwidthUsed || 0) / (1024 * 1024 * 100) * 100).toFixed(1)}% of 100MB
+                    </span>
+                  </div>
+                  <Progress 
+                    value={Math.min(((localSettings.metrics?.bandwidthUsed || 0) / (1024 * 1024 * 100) * 100), 100)} 
+                    className="h-2"
+                  />
+                </div>
+
+                {localSettings.metrics?.requestsHistory && localSettings.metrics.requestsHistory.length > 0 && (
+                  <>
+                    <Separator />
+                    <div className="space-y-2">
+                      <Label className="text-[13px]">Recent Activity</Label>
+                      <div className="space-y-1 max-h-32 overflow-y-auto">
+                        {localSettings.metrics.requestsHistory.slice(-5).reverse().map((log, idx) => (
+                          <div key={idx} className="flex items-center justify-between text-[11px] p-2 bg-muted/30 rounded">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="text-[10px] font-code">
+                                {log.method}
+                              </Badge>
+                              <span className="font-code text-muted-foreground truncate max-w-[150px]">
+                                {log.path}
+                              </span>
+                            </div>
+                            <span className="text-muted-foreground">
+                              {formatBytes(log.bytesTransferred)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <Card className="bg-muted/30">
             <CardHeader>
