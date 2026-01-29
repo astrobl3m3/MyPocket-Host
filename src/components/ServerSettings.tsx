@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
 import {
@@ -183,7 +182,7 @@ export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsPr
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col">
       <div className="p-6 border-b border-border flex-shrink-0">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-[20px] font-semibold">Server & Access Point</h2>
@@ -196,7 +195,7 @@ export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsPr
         </p>
       </div>
 
-      <ScrollArea className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto">
         <div className="p-6 space-y-6 pb-8">
           <Card>
             <CardHeader>
@@ -709,9 +708,9 @@ export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsPr
             </CardContent>
           </Card>
         </div>
-      </ScrollArea>
+      </div>
 
-      <div className="p-6 border-t border-border bg-card flex-shrink-0">
+      <div className="p-6 border-t border-border bg-card flex-shrink-0 sticky bottom-0">
         <div className="flex gap-2 justify-end">
           <Button variant="outline" onClick={onClose}>
             Cancel
