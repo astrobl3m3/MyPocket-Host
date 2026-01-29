@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator'
 import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from 'sonner'
+import QRCode from 'qrcode'
 import {
   WifiHigh,
   CheckCircle,
@@ -24,6 +25,8 @@ import {
   ChartBar,
   HardDrives,
   Clock,
+  QrCode as QrCodeIcon,
+  DownloadSimple,
 } from '@phosphor-icons/react'
 import type { ServerSettings as ServerSettingsType } from '@/lib/types'
 
@@ -39,6 +42,8 @@ export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsPr
   const [serverStatus, setServerStatus] = useState<'online' | 'offline' | 'checking'>(
     settings.enabled ? 'online' : 'offline'
   )
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('')
+  const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
     setLocalSettings(settings)
@@ -72,6 +77,31 @@ export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsPr
       }
     })
   }, [])
+
+  useEffect(() => {
+    const generateQRCode = async () => {
+      if (localSettings.publishedUrl && canvasRef.current) {
+        try {
+          await QRCode.toCanvas(canvasRef.current, localSettings.publishedUrl, {
+            width: 200,
+            margin: 2,
+            color: {
+              dark: '#000000',
+              light: '#FFFFFF',
+            },
+          })
+          const dataUrl = canvasRef.current.toDataURL()
+          setQrCodeDataUrl(dataUrl)
+        } catch (error) {
+          console.error('Error generating QR code:', error)
+        }
+      }
+    }
+
+    if (localSettings.isPublished && localSettings.publishedUrl) {
+      generateQRCode()
+    }
+  }, [localSettings.publishedUrl, localSettings.isPublished])
 
   const formatBytes = (bytes: number): string => {
     if (bytes === 0) return '0 B'
@@ -151,6 +181,16 @@ export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsPr
     if (localSettings.publishedUrl) {
       navigator.clipboard.writeText(localSettings.publishedUrl)
       toast.success('URL copied to clipboard')
+    }
+  }
+
+  const handleDownloadQRCode = () => {
+    if (qrCodeDataUrl) {
+      const link = document.createElement('a')
+      link.download = `${localSettings.accessPointName}-qrcode.png`
+      link.href = qrCodeDataUrl
+      link.click()
+      toast.success('QR code downloaded')
     }
   }
 
@@ -395,6 +435,45 @@ export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsPr
                         Published {new Date(localSettings.lastPublished).toLocaleString()}
                       </p>
                     )}
+                    
+                    <Separator />
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <QrCodeIcon size={16} weight="bold" className="text-primary" />
+                        <Label className="text-[13px] font-medium">Share via QR Code</Label>
+                      </div>
+                      
+                      <div className="flex flex-col items-center gap-3 p-4 bg-muted/50 rounded-lg">
+                        <canvas
+                          ref={canvasRef}
+                          className="hidden"
+                        />
+                        {qrCodeDataUrl && (
+                          <div className="relative bg-white p-3 rounded-lg shadow-sm border-2 border-border">
+                            <img 
+                              src={qrCodeDataUrl} 
+                              alt="QR Code for published URL" 
+                              className="w-[200px] h-[200px]"
+                            />
+                          </div>
+                        )}
+                        <p className="text-[12px] text-center text-muted-foreground max-w-[250px]">
+                          Scan this QR code with your mobile device to quickly access the published project
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleDownloadQRCode}
+                          disabled={!qrCodeDataUrl}
+                          className="gap-2 w-full"
+                        >
+                          <DownloadSimple size={16} />
+                          Download QR Code
+                        </Button>
+                      </div>
+                    </div>
+
                     <Button
                       variant="ghost"
                       size="sm"
