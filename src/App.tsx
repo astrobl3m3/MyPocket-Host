@@ -40,6 +40,13 @@ function App() {
     )
   }
 
+  const handleUpdateProject = (updatedProject: Project) => {
+    setProjects(current =>
+      (current || []).map(p => (p.id === updatedProject.id ? updatedProject : p))
+    )
+    toast.success('Project updated successfully')
+  }
+
   const handleDuplicateProject = (project: Project) => {
     const duplicated = duplicateProject(project)
     setProjects(current => [...(current || []), duplicated])
@@ -92,6 +99,7 @@ function App() {
         onArchiveProject={handleArchiveProject}
         onPreviewProject={handlePreviewProject}
         onImportProject={() => setIsImportDialogOpen(true)}
+        onUpdateProject={handleUpdateProject}
       />
       <CreateProjectDialog
         open={isCreateDialogOpen}

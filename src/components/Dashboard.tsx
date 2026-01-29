@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Project } from '@/lib/types'
+import type { Project, ServerSettings as ServerSettingsType } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -12,6 +12,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
   Plus,
   DotsThree,
   PencilSimple,
@@ -22,9 +28,12 @@ import {
   Eye,
   FolderOpen,
   Package,
+  WifiHigh,
+  Circle,
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { duplicateProject, exportProjectAsJSON, downloadFile } from '@/lib/project-utils'
+import { ServerSettings } from './ServerSettings'
 
 interface DashboardProps {
   projects: Project[]
@@ -35,6 +44,7 @@ interface DashboardProps {
   onArchiveProject: (projectId: string) => void
   onPreviewProject: (project: Project) => void
   onImportProject: () => void
+  onUpdateProject: (project: Project) => void
 }
 
 export function Dashboard({
@@ -46,8 +56,10 @@ export function Dashboard({
   onArchiveProject,
   onPreviewProject,
   onImportProject,
+  onUpdateProject,
 }: DashboardProps) {
   const [activeTab, setActiveTab] = useState('all')
+  const [serverSettingsProject, setServerSettingsProject] = useState<Project | null>(null)
 
   const activeProjects = projects.filter(p => !p.isArchived)
   const archivedProjects = projects.filter(p => p.isArchived)
@@ -56,6 +68,15 @@ export function Dashboard({
     const json = exportProjectAsJSON(project)
     downloadFile(json, `${project.name}.json`, 'application/json')
     toast.success('Project exported successfully')
+  }
+
+  const handleUpdateServerSettings = (settings: ServerSettingsType) => {
+    if (serverSettingsProject) {
+      onUpdateProject({
+        ...serverSettingsProject,
+        serverSettings: settings,
+      })
+    }
   }
 
   const displayProjects = activeTab === 'all' ? activeProjects : archivedProjects
@@ -150,6 +171,10 @@ export function Dashboard({
                               <Eye size={16} className="mr-2" />
                               Preview
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setServerSettingsProject(project)}>
+                              <WifiHigh size={16} className="mr-2" />
+                              Server Settings
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => onDuplicateProject(project)}>
                               <Copy size={16} className="mr-2" />
                               Duplicate
@@ -173,7 +198,23 @@ export function Dashboard({
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
-                      <div className="flex items-center gap-2 mt-3">
+                      <div className="flex items-center gap-2 mt-3 flex-wrap">
+                        {project.serverSettings?.enabled && project.serverSettings?.isPublished ? (
+                          <Badge variant="default" className="text-xs gap-1.5 bg-green-600 hover:bg-green-700">
+                            <Circle size={8} weight="fill" className="animate-pulse" />
+                            Online
+                          </Badge>
+                        ) : project.serverSettings?.enabled ? (
+                          <Badge variant="secondary" className="text-xs gap-1.5">
+                            <Circle size={8} weight="fill" className="text-yellow-500" />
+                            Server On
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs gap-1.5">
+                            <Circle size={8} weight="fill" className="text-muted-foreground" />
+                            Offline
+                          </Badge>
+                        )}
                         {project.previewActive && (
                           <Badge variant="default" className="text-xs gap-1">
                             <div className="w-2 h-2 bg-accent rounded-full animate-pulse-glow" />
@@ -208,6 +249,24 @@ export function Dashboard({
           </TabsContent>
         </Tabs>
       </div>
+
+      <Dialog open={!!serverSettingsProject} onOpenChange={() => setServerSettingsProject(null)}>
+        <DialogContent className="max-w-[600px] p-0 gap-0">
+          {serverSettingsProject && (
+            <ServerSettings
+              settings={serverSettingsProject.serverSettings || {
+                enabled: false,
+                port: 3000,
+                accessPointName: serverSettingsProject.name.toLowerCase().replace(/\s+/g, '-'),
+                password: '',
+                isPublished: false,
+              }}
+              onUpdate={handleUpdateServerSettings}
+              onClose={() => setServerSettingsProject(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
