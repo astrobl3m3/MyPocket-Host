@@ -239,9 +239,7 @@ export function Dashboard({
             <h1 className="text-[32px] font-bold tracking-[-0.02em] leading-[1.2] mb-2">
               PocketHost
             </h1>
-            <p className="text-[15px] text-muted-foreground leading-[1.5]">
-              Your visual no-code web project platform
-            </p>
+            <p className="text-[15px] text-muted-foreground leading-[1.5]">Your Pocket WebServer</p>
           </div>
           <div className="flex items-center gap-2">
             <Button 
@@ -567,7 +565,6 @@ export function Dashboard({
           </TabsContent>
         </Tabs>
       </div>
-
       <Dialog open={!!serverSettingsProject} onOpenChange={() => setServerSettingsProject(null)}>
         <DialogContent className="max-w-[600px] h-[90vh] p-0 gap-0 overflow-hidden flex flex-col">
           {serverSettingsProject && (() => {
@@ -584,10 +581,10 @@ export function Dashboard({
                 onUpdate={handleUpdateServerSettings}
                 onClose={() => setServerSettingsProject(null)}
               />
-            )
+            );
           })()}
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }
