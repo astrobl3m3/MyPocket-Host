@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +31,11 @@ import {
   Package,
   WifiHigh,
   Circle,
+  CloudArrowUp,
+  CloudArrowDown,
+  Power,
+  CheckSquare,
+  Globe,
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { duplicateProject, exportProjectAsJSON, downloadFile } from '@/lib/project-utils'
@@ -60,9 +66,13 @@ export function Dashboard({
 }: DashboardProps) {
   const [activeTab, setActiveTab] = useState('all')
   const [serverSettingsProject, setServerSettingsProject] = useState<Project | null>(null)
+  const [selectedProjects, setSelectedProjects] = useState<Set<string>>(new Set())
+  const [bulkMenuOpen, setBulkMenuOpen] = useState(false)
 
   const activeProjects = projects.filter(p => !p.isArchived)
   const archivedProjects = projects.filter(p => p.isArchived)
+  const onlineProjects = activeProjects.filter(p => p.serverSettings?.enabled && p.serverSettings?.isPublished)
+  const offlineProjects = activeProjects.filter(p => !p.serverSettings?.enabled || !p.serverSettings?.isPublished)
 
   const handleExportProject = (project: Project) => {
     const json = exportProjectAsJSON(project)
@@ -79,7 +89,130 @@ export function Dashboard({
     }
   }
 
-  const displayProjects = activeTab === 'all' ? activeProjects : archivedProjects
+  const handleToggleSelection = (projectId: string) => {
+    const newSelection = new Set(selectedProjects)
+    if (newSelection.has(projectId)) {
+      newSelection.delete(projectId)
+    } else {
+      newSelection.add(projectId)
+    }
+    setSelectedProjects(newSelection)
+  }
+
+  const handleSelectAll = () => {
+    if (selectedProjects.size === displayProjects.length) {
+      setSelectedProjects(new Set())
+    } else {
+      setSelectedProjects(new Set(displayProjects.map(p => p.id)))
+    }
+  }
+
+  const handleBulkEnableServer = () => {
+    let count = 0
+    selectedProjects.forEach(projectId => {
+      const project = projects.find(p => p.id === projectId)
+      if (project) {
+        onUpdateProject({
+          ...project,
+          serverSettings: {
+            ...(project.serverSettings || {
+              enabled: false,
+              port: 3000,
+              accessPointName: project.name.toLowerCase().replace(/\s+/g, '-'),
+              password: '',
+              isPublished: false,
+            }),
+            enabled: true,
+          },
+        })
+        count++
+      }
+    })
+    setSelectedProjects(new Set())
+    toast.success(`${count} project${count !== 1 ? 's' : ''} server enabled`)
+  }
+
+  const handleBulkDisableServer = () => {
+    let count = 0
+    selectedProjects.forEach(projectId => {
+      const project = projects.find(p => p.id === projectId)
+      if (project && project.serverSettings) {
+        onUpdateProject({
+          ...project,
+          serverSettings: {
+            ...project.serverSettings,
+            enabled: false,
+            isPublished: false,
+          },
+        })
+        count++
+      }
+    })
+    setSelectedProjects(new Set())
+    toast.success(`${count} project${count !== 1 ? 's' : ''} server disabled`)
+  }
+
+  const handleBulkPublish = () => {
+    let count = 0
+    selectedProjects.forEach(projectId => {
+      const project = projects.find(p => p.id === projectId)
+      if (project) {
+        const settings = project.serverSettings || {
+          enabled: false,
+          port: 3000,
+          accessPointName: project.name.toLowerCase().replace(/\s+/g, '-'),
+          password: '',
+          isPublished: false,
+        }
+        if (settings.enabled) {
+          onUpdateProject({
+            ...project,
+            serverSettings: {
+              ...settings,
+              isPublished: true,
+              publishedUrl: `http://${settings.accessPointName}.local:${settings.port}`,
+              lastPublished: Date.now(),
+            },
+          })
+          count++
+        }
+      }
+    })
+    setSelectedProjects(new Set())
+    if (count > 0) {
+      toast.success(`${count} project${count !== 1 ? 's' : ''} published`)
+    } else {
+      toast.error('No projects with enabled servers selected')
+    }
+  }
+
+  const handleBulkUnpublish = () => {
+    let count = 0
+    selectedProjects.forEach(projectId => {
+      const project = projects.find(p => p.id === projectId)
+      if (project && project.serverSettings?.isPublished) {
+        onUpdateProject({
+          ...project,
+          serverSettings: {
+            ...project.serverSettings,
+            isPublished: false,
+            publishedUrl: undefined,
+          },
+        })
+        count++
+      }
+    })
+    setSelectedProjects(new Set())
+    toast.success(`${count} project${count !== 1 ? 's' : ''} unpublished`)
+  }
+
+  const displayProjects = activeTab === 'all' 
+    ? activeProjects 
+    : activeTab === 'online'
+    ? onlineProjects
+    : activeTab === 'offline'
+    ? offlineProjects
+    : archivedProjects
 
   return (
     <div className="min-h-screen bg-background">
@@ -111,6 +244,14 @@ export function Dashboard({
               <FolderOpen size={16} />
               All Projects ({activeProjects.length})
             </TabsTrigger>
+            <TabsTrigger value="online" className="gap-2">
+              <Circle size={16} weight="fill" className="text-green-500" />
+              Online ({onlineProjects.length})
+            </TabsTrigger>
+            <TabsTrigger value="offline" className="gap-2">
+              <Circle size={16} weight="fill" className="text-muted-foreground" />
+              Offline ({offlineProjects.length})
+            </TabsTrigger>
             <TabsTrigger value="archived" className="gap-2">
               <Archive size={16} />
               Archived ({archivedProjects.length})
@@ -118,16 +259,68 @@ export function Dashboard({
           </TabsList>
 
           <TabsContent value={activeTab} className="mt-6">
+            {selectedProjects.size > 0 && (
+              <div className="mb-4 p-4 bg-accent/10 border border-accent/20 rounded-lg flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <CheckSquare size={20} weight="fill" className="text-accent" />
+                  <span className="text-[14px] font-medium">
+                    {selectedProjects.size} project{selectedProjects.size !== 1 ? 's' : ''} selected
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <DropdownMenu open={bulkMenuOpen} onOpenChange={setBulkMenuOpen}>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="default" size="sm" className="gap-2">
+                        <Power size={16} />
+                        Bulk Actions
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={handleBulkEnableServer}>
+                        <Power size={16} className="mr-2" />
+                        Enable Server
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleBulkDisableServer}>
+                        <Power size={16} className="mr-2 opacity-50" />
+                        Disable Server
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={handleBulkPublish}>
+                        <CloudArrowUp size={16} className="mr-2" />
+                        Publish
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleBulkUnpublish}>
+                        <CloudArrowDown size={16} className="mr-2" />
+                        Unpublish
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedProjects(new Set())}>
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            )}
             {displayProjects.length === 0 ? (
               <Card className="border-dashed">
                 <CardContent className="flex flex-col items-center justify-center py-16">
                   <Package size={64} className="text-muted-foreground mb-4" weight="duotone" />
                   <h3 className="text-[18px] font-medium mb-2">
-                    {activeTab === 'all' ? 'No projects yet' : 'No archived projects'}
+                    {activeTab === 'all' 
+                      ? 'No projects yet' 
+                      : activeTab === 'online'
+                      ? 'No online projects'
+                      : activeTab === 'offline'
+                      ? 'No offline projects'
+                      : 'No archived projects'}
                   </h3>
                   <p className="text-[13px] text-muted-foreground mb-4">
                     {activeTab === 'all'
                       ? 'Create your first project to get started'
+                      : activeTab === 'online'
+                      ? 'Enable and publish a server to see projects here'
+                      : activeTab === 'offline'
+                      ? 'All projects are currently online'
                       : 'Archived projects will appear here'}
                   </p>
                   {activeTab === 'all' && (
@@ -139,6 +332,22 @@ export function Dashboard({
                 </CardContent>
               </Card>
             ) : (
+              <>
+                {activeTab !== 'archived' && displayProjects.length > 0 && (
+                  <div className="mb-4 flex items-center gap-2">
+                    <Checkbox 
+                      id="select-all"
+                      checked={selectedProjects.size === displayProjects.length && displayProjects.length > 0}
+                      onCheckedChange={handleSelectAll}
+                    />
+                    <label 
+                      htmlFor="select-all" 
+                      className="text-[13px] text-muted-foreground cursor-pointer"
+                    >
+                      Select all
+                    </label>
+                  </div>
+                )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {displayProjects.map(project => (
                   <Card
@@ -147,7 +356,15 @@ export function Dashboard({
                   >
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
                     <CardHeader className="relative">
-                      <div className="flex items-start justify-between">
+                      <div className="flex items-start justify-between gap-2">
+                        {activeTab !== 'archived' && (
+                          <Checkbox
+                            checked={selectedProjects.has(project.id)}
+                            onCheckedChange={() => handleToggleSelection(project.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-1"
+                          />
+                        )}
                         <div className="flex-1">
                           <CardTitle className="text-[18px] font-medium leading-[1.4] mb-1">
                             {project.name}
@@ -227,6 +444,33 @@ export function Dashboard({
                       </div>
                     </CardHeader>
                     <CardContent className="relative">
+                      {project.serverSettings?.isPublished && project.serverSettings?.publishedUrl && (
+                        <div className="mb-3 p-2 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-md">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <Globe size={12} className="text-green-600" />
+                              <span className="text-[11px] font-medium text-green-700 dark:text-green-400">
+                                Published URL
+                              </span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                navigator.clipboard.writeText(project.serverSettings?.publishedUrl || '')
+                                toast.success('URL copied to clipboard')
+                              }}
+                              className="h-5 w-5 p-0"
+                            >
+                              <Copy size={10} className="text-green-600" />
+                            </Button>
+                          </div>
+                          <code className="text-[11px] text-green-800 dark:text-green-300 font-code break-all">
+                            {project.serverSettings.publishedUrl}
+                          </code>
+                        </div>
+                      )}
                       <div className="flex items-center justify-between text-[13px] text-muted-foreground">
                         <span>
                           Updated {new Date(project.updatedAt).toLocaleDateString()}
@@ -245,6 +489,7 @@ export function Dashboard({
                   </Card>
                 ))}
               </div>
+              </>
             )}
           </TabsContent>
         </Tabs>

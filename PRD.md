@@ -13,11 +13,11 @@ This application requires sophisticated state management across multiple project
 ## Essential Features
 
 ### Project Management Dashboard
-- **Functionality**: Central hub displaying all user projects with metadata, thumbnails, and quick actions
-- **Purpose**: Provides overview and fast access to all work
+- **Functionality**: Central hub displaying all user projects with metadata, online/offline status indicators, published URLs, bulk operations toolbar, and quick actions with multi-select checkboxes
+- **Purpose**: Provides comprehensive overview with powerful filtering and bulk management capabilities
 - **Trigger**: App launch or "Home" navigation
-- **Progression**: View project grid → Select project card → Access quick menu (Edit/Duplicate/Export/Archive/Delete) → Confirm action → Update view
-- **Success criteria**: Users can view, filter, and perform actions on 10+ projects within seconds
+- **Progression**: View project grid → Filter by status (All/Online/Offline/Archived) → Select multiple projects with checkboxes → Apply bulk operations (Enable/Disable Server, Publish/Unpublish) → Or access individual quick menu (Edit/Duplicate/Export/Archive/Delete) → View published URLs directly on cards → Copy URLs to clipboard → Confirm actions → Update view
+- **Success criteria**: Users can view, filter, bulk manage, and perform actions on 10+ projects within seconds; online projects show published URLs with copy functionality; offline/online status clearly visible with color-coded badges
 
 ### Visual Project Builder
 - **Functionality**: No-code interface for building web pages using pre-built components with drag-and-drop reordering, rich text editing, full customization, scrollable canvas, and HTML import
@@ -62,11 +62,18 @@ This application requires sophisticated state management across multiple project
 - **Success criteria**: Successfully import from URLs (JSON/HTML), file uploads (.json/.html), pasted HTML/JSON; export projects as JSON or standalone HTML; parse HTML into editable components; download fully functional standalone websites
 
 ### Server & Access Point Management
-- **Functionality**: Configure and manage local development server; create mobile access point with custom name and password; toggle server on/off; publish/unpublish projects to network; real-time server status checking; generate and copy published URLs; view connection instructions
-- **Purpose**: Enable local development server hosting and mobile device access via network
-- **Trigger**: "Server" button in project builder toolbar
-- **Progression**: Open server settings → Enable server toggle → Configure access point name → Set port number → Enter password → Toggle publish → View published URL → Copy URL to clipboard → Check server status → Save settings
-- **Success criteria**: Server can be enabled/disabled; access point configurable with name, port, password; publish toggle makes project accessible; status indicator shows online/offline/checking states; published URL displayed and copyable; settings persist with project; visual indicators show server and publish status in project builder header
+- **Functionality**: Configure and manage local development server; create mobile access point with custom name and password; toggle server on/off; publish/unpublish projects to network; real-time server status checking; generate and copy published URLs; view connection instructions; bulk operations for multiple projects simultaneously
+- **Purpose**: Enable local development server hosting, mobile device access via network, and efficient management of multiple project servers
+- **Trigger**: "Server" button in project builder toolbar or Dashboard bulk actions
+- **Progression**: Individual: Open server settings → Enable server toggle → Configure access point name → Set port number → Enter password → Toggle publish → View published URL → Copy URL to clipboard → Check server status → Save settings | Bulk: Select multiple projects on Dashboard → Click "Bulk Actions" → Choose operation (Enable/Disable Server, Publish/Unpublish) → Confirm → All selected projects updated simultaneously
+- **Success criteria**: Server can be enabled/disabled; access point configurable with name, port, password; publish toggle makes project accessible; status indicator shows online/offline/checking states; published URL displayed on project cards and copyable; settings persist with project; visual indicators show server and publish status in project builder header and dashboard cards; bulk operations can manage 5+ projects simultaneously with single action
+
+### Dashboard Filtering & Bulk Operations
+- **Functionality**: Filter projects by status (All/Online/Offline/Archived); multi-select projects with checkboxes; bulk server operations menu; "Select all" toggle; visual selection count; published URL display on project cards with copy button
+- **Purpose**: Provide quick visibility of project statuses and enable efficient bulk management of server settings across multiple projects
+- **Trigger**: Click filter tabs on Dashboard, select project checkboxes, or use "Select all" toggle
+- **Progression**: View Dashboard → Click filter tab (All/Online/Offline/Archived) → View filtered projects → Check checkboxes to select multiple → View selection count → Click "Bulk Actions" dropdown → Choose operation (Enable Server/Disable Server/Publish/Unpublish) → Projects updated with single action → View published URLs on online project cards → Click copy icon to copy URL
+- **Success criteria**: Filter tabs show accurate project counts; Online tab shows only projects with enabled servers and published status; Offline tab shows projects without servers or unpublished; checkboxes select/deselect projects; bulk actions execute on all selected projects; published URLs visible on project cards with working copy functionality; selection cleared after bulk operation; visual feedback (toasts) confirm actions
 
 ### Real-Time Collaborative Editing
 - **Functionality**: Multiple users can view who else is editing a project in real-time; presence indicators show active users with avatars; automatic session management with user activity tracking; version tracking for synchronization
