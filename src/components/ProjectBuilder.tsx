@@ -283,16 +283,14 @@ export function ProjectBuilder({ project, onSave, onBack }: ProjectBuilderProps)
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        {showServerSettings ? (
-          <div className="w-[480px] border-r border-border bg-card flex flex-col">
+        <div className={`${showServerSettings ? 'w-[480px]' : 'w-80'} border-r border-border bg-card flex flex-col transition-all duration-300`}>
+          {showServerSettings ? (
             <ServerSettings
               settings={serverSettings}
               onUpdate={handleUpdateServerSettings}
               onClose={() => setShowServerSettings(false)}
             />
-          </div>
-        ) : (
-          <div className="w-80 border-r border-border bg-card flex flex-col">
+          ) : (
             <Tabs defaultValue="components" className="flex-1 flex flex-col">
               <TabsList className="mx-4 mt-4">
                 <TabsTrigger value="components" className="flex-1 gap-2">
@@ -420,8 +418,8 @@ export function ProjectBuilder({ project, onSave, onBack }: ProjectBuilderProps)
               </div>
             </TabsContent>
           </Tabs>
+          )}
         </div>
-        )}
 
         <div className="flex-1 flex overflow-hidden">
           <ScrollArea className="flex-1">
