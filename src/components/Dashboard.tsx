@@ -86,10 +86,14 @@ export function Dashboard({
 
   const handleUpdateServerSettings = (settings: ServerSettingsType) => {
     if (serverSettingsProject) {
-      onUpdateProject({
-        ...serverSettingsProject,
-        serverSettings: settings,
-      })
+      const currentProject = projects.find(p => p.id === serverSettingsProject.id)
+      if (currentProject) {
+        onUpdateProject({
+          ...currentProject,
+          serverSettings: settings,
+          updatedAt: Date.now(),
+        })
+      }
     }
   }
 
@@ -446,10 +450,10 @@ export function Dashboard({
                             <Circle size={8} weight="fill" className="animate-pulse" />
                             Online
                           </Badge>
-                        ) : project.serverSettings?.enabled ? (
+                        ) : project.serverSettings?.enabled && !project.serverSettings?.isPublished ? (
                           <Badge variant="secondary" className="text-xs gap-1.5">
                             <Circle size={8} weight="fill" className="text-yellow-500" />
-                            Server On
+                            Server On (Not Published)
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="text-xs gap-1.5">
@@ -545,19 +549,22 @@ export function Dashboard({
 
       <Dialog open={!!serverSettingsProject} onOpenChange={() => setServerSettingsProject(null)}>
         <DialogContent className="max-w-[600px] p-0 gap-0">
-          {serverSettingsProject && (
-            <ServerSettings
-              settings={serverSettingsProject.serverSettings || {
-                enabled: false,
-                port: 3000,
-                accessPointName: serverSettingsProject.name.toLowerCase().replace(/\s+/g, '-'),
-                password: '',
-                isPublished: false,
-              }}
-              onUpdate={handleUpdateServerSettings}
-              onClose={() => setServerSettingsProject(null)}
-            />
-          )}
+          {serverSettingsProject && (() => {
+            const currentProject = projects.find(p => p.id === serverSettingsProject.id) || serverSettingsProject
+            return (
+              <ServerSettings
+                settings={currentProject.serverSettings || {
+                  enabled: false,
+                  port: 3000,
+                  accessPointName: currentProject.name.toLowerCase().replace(/\s+/g, '-'),
+                  password: '',
+                  isPublished: false,
+                }}
+                onUpdate={handleUpdateServerSettings}
+                onClose={() => setServerSettingsProject(null)}
+              />
+            )
+          })()}
         </DialogContent>
       </Dialog>
     </div>

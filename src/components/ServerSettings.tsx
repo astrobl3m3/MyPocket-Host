@@ -36,28 +36,41 @@ interface ServerSettingsProps {
 export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsProps) {
   const [localSettings, setLocalSettings] = useState<ServerSettingsType>(settings)
   const [isChecking, setIsChecking] = useState(false)
-  const [serverStatus, setServerStatus] = useState<'online' | 'offline' | 'checking'>('offline')
+  const [serverStatus, setServerStatus] = useState<'online' | 'offline' | 'checking'>(
+    settings.enabled ? 'online' : 'offline'
+  )
 
   useEffect(() => {
-    if (!localSettings.ssl) {
-      setLocalSettings({
-        ...localSettings,
-        ssl: {
-          enabled: false,
-          autoGenerate: true,
-        },
-      })
-    }
-    if (!localSettings.metrics) {
-      setLocalSettings({
-        ...localSettings,
-        metrics: {
-          totalRequests: 0,
-          bandwidthUsed: 0,
-          requestsHistory: [],
-        },
-      })
-    }
+    setLocalSettings(settings)
+    setServerStatus(settings.enabled ? 'online' : 'offline')
+  }, [settings])
+
+  useEffect(() => {
+    setLocalSettings(prevSettings => {
+      const needsSSL = !prevSettings.ssl
+      const needsMetrics = !prevSettings.metrics
+      
+      if (!needsSSL && !needsMetrics) {
+        return prevSettings
+      }
+      
+      return {
+        ...prevSettings,
+        ...(needsSSL && {
+          ssl: {
+            enabled: false,
+            autoGenerate: true,
+          },
+        }),
+        ...(needsMetrics && {
+          metrics: {
+            totalRequests: 0,
+            bandwidthUsed: 0,
+            requestsHistory: [],
+          },
+        }),
+      }
+    })
   }, [])
 
   const formatBytes = (bytes: number): string => {
@@ -70,9 +83,9 @@ export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsPr
 
   const handleToggleServer = () => {
     const newEnabled = !localSettings.enabled
-    setLocalSettings({ ...localSettings, enabled: newEnabled })
     
     if (newEnabled) {
+      setLocalSettings({ ...localSettings, enabled: true })
       setServerStatus('online')
       toast.success('Server enabled')
     } else {
@@ -454,27 +467,20 @@ export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsPr
                 <Switch 
                   checked={localSettings.ssl?.enabled || false}
                   onCheckedChange={(checked) => {
+                    const protocol = checked ? 'https' : 'http'
+                    const newUrl = localSettings.isPublished 
+                      ? `${protocol}://${localSettings.accessPointName}.local:${localSettings.port}`
+                      : undefined
+                    
                     setLocalSettings({
                       ...localSettings,
+                      publishedUrl: newUrl,
                       ssl: {
                         ...localSettings.ssl,
                         enabled: checked,
                         autoGenerate: localSettings.ssl?.autoGenerate ?? true,
                       },
                     })
-                    if (checked && localSettings.isPublished) {
-                      const protocol = 'https'
-                      const newUrl = `${protocol}://${localSettings.accessPointName}.local:${localSettings.port}`
-                      setLocalSettings({
-                        ...localSettings,
-                        publishedUrl: newUrl,
-                        ssl: {
-                          ...localSettings.ssl,
-                          enabled: checked,
-                          autoGenerate: localSettings.ssl?.autoGenerate ?? true,
-                        },
-                      })
-                    }
                   }}
                   disabled={!localSettings.enabled}
                 />
