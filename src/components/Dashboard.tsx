@@ -34,6 +34,7 @@ interface DashboardProps {
   onDeleteProject: (projectId: string) => void
   onArchiveProject: (projectId: string) => void
   onPreviewProject: (project: Project) => void
+  onImportProject: () => void
 }
 
 export function Dashboard({
@@ -44,6 +45,7 @@ export function Dashboard({
   onDeleteProject,
   onArchiveProject,
   onPreviewProject,
+  onImportProject,
 }: DashboardProps) {
   const [activeTab, setActiveTab] = useState('all')
 
@@ -70,10 +72,16 @@ export function Dashboard({
               Your visual no-code web project platform
             </p>
           </div>
-          <Button onClick={onCreateProject} size="lg" className="gap-2">
-            <Plus size={20} weight="bold" />
-            New Project
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={onImportProject} variant="outline" size="lg" className="gap-2">
+              <Download size={20} />
+              Import
+            </Button>
+            <Button onClick={onCreateProject} size="lg" className="gap-2">
+              <Plus size={20} weight="bold" />
+              New Project
+            </Button>
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">

@@ -4,6 +4,7 @@ import type { Project } from '@/lib/types'
 import { Dashboard } from '@/components/Dashboard'
 import { ProjectBuilder } from '@/components/ProjectBuilder'
 import { CreateProjectDialog } from '@/components/CreateProjectDialog'
+import { ImportDialog } from '@/components/ImportDialog'
 import { createDefaultProject, duplicateProject, generateHTML } from '@/lib/project-utils'
 import { Toaster } from '@/components/ui/sonner'
 import { toast } from 'sonner'
@@ -12,6 +13,7 @@ function App() {
   const [projects, setProjects] = useKV<Project[]>('projects', [])
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
 
   const projectList = projects || []
   const currentProject = projectList.find(p => p.id === currentProjectId)
@@ -89,11 +91,17 @@ function App() {
         onDeleteProject={handleDeleteProject}
         onArchiveProject={handleArchiveProject}
         onPreviewProject={handlePreviewProject}
+        onImportProject={() => setIsImportDialogOpen(true)}
       />
       <CreateProjectDialog
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
         onCreateProject={handleCreateProject}
+        onImportProject={handleImportProject}
+      />
+      <ImportDialog
+        open={isImportDialogOpen}
+        onOpenChange={setIsImportDialogOpen}
         onImportProject={handleImportProject}
       />
       <Toaster position="bottom-right" />

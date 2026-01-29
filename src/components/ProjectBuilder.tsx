@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { Project, Component } from '@/lib/types'
+import type { Project, Component, ServerSettings as ServerSettingsType } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
@@ -18,9 +18,12 @@ import {
   Download,
   Keyboard,
   Users,
+  WifiHigh,
+  Circle,
 } from '@phosphor-icons/react'
 import { ComponentRenderer } from './ComponentRenderer'
 import { ComponentEditor } from './ComponentEditor'
+import { ServerSettings } from './ServerSettings'
 import { componentFactories, componentLabels } from '@/lib/component-factory'
 import { generateHTML, downloadFile } from '@/lib/project-utils'
 import { toast } from 'sonner'
@@ -39,6 +42,16 @@ export function ProjectBuilder({ project, onSave, onBack }: ProjectBuilderProps)
   const [history, setHistory] = useState<Component[][]>([project.components])
   const [historyIndex, setHistoryIndex] = useState(0)
   const [copiedComponent, setCopiedComponent] = useState<Component | null>(null)
+  const [showServerSettings, setShowServerSettings] = useState(false)
+  const [serverSettings, setServerSettings] = useState<ServerSettingsType>(
+    project.serverSettings || {
+      enabled: false,
+      port: 3000,
+      accessPointName: project.name.toLowerCase().replace(/\s+/g, '-'),
+      password: '',
+      isPublished: false,
+    }
+  )
 
   const selectedComponent = components.find(c => c.id === selectedComponentId)
 
@@ -97,9 +110,14 @@ export function ProjectBuilder({ project, onSave, onBack }: ProjectBuilderProps)
       components,
       updatedAt: Date.now(),
       previewActive,
+      serverSettings,
     }
     onSave(updatedProject)
     toast.success('Project saved successfully')
+  }
+
+  const handleUpdateServerSettings = (newSettings: ServerSettingsType) => {
+    setServerSettings(newSettings)
   }
 
   const handleAddComponent = (type: keyof typeof componentFactories) => {
@@ -210,7 +228,15 @@ export function ProjectBuilder({ project, onSave, onBack }: ProjectBuilderProps)
               Back
             </Button>
             <div>
-              <h2 className="text-[18px] font-medium">{project.name}</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-[18px] font-medium">{project.name}</h2>
+                {serverSettings.isPublished && (
+                  <Badge variant="default" className="gap-1">
+                    <Circle size={8} weight="fill" className="text-green-400 animate-pulse" />
+                    Published
+                  </Badge>
+                )}
+              </div>
               <p className="text-[13px] text-muted-foreground">{components.length} components</p>
             </div>
           </div>
@@ -236,6 +262,14 @@ export function ProjectBuilder({ project, onSave, onBack }: ProjectBuilderProps)
               Redo
             </Button>
             <Separator orientation="vertical" className="h-6" />
+            <Button
+              variant={serverSettings.enabled ? 'default' : 'outline'}
+              onClick={() => setShowServerSettings(true)}
+              className="gap-2"
+            >
+              <WifiHigh size={16} weight={serverSettings.enabled ? 'fill' : 'regular'} />
+              Server
+            </Button>
             <Button variant="outline" onClick={handleDownloadHTML} className="gap-2">
               <Download size={16} />
               Download HTML
@@ -249,18 +283,27 @@ export function ProjectBuilder({ project, onSave, onBack }: ProjectBuilderProps)
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        <div className="w-80 border-r border-border bg-card flex flex-col">
-          <Tabs defaultValue="components" className="flex-1 flex flex-col">
-            <TabsList className="mx-4 mt-4">
-              <TabsTrigger value="components" className="flex-1 gap-2">
-                <Cube size={16} />
-                Components
-              </TabsTrigger>
-              <TabsTrigger value="preview" className="flex-1 gap-2">
-                <Eye size={16} />
-                Preview
-              </TabsTrigger>
-            </TabsList>
+        {showServerSettings ? (
+          <div className="w-[480px] border-r border-border bg-card flex flex-col">
+            <ServerSettings
+              settings={serverSettings}
+              onUpdate={handleUpdateServerSettings}
+              onClose={() => setShowServerSettings(false)}
+            />
+          </div>
+        ) : (
+          <div className="w-80 border-r border-border bg-card flex flex-col">
+            <Tabs defaultValue="components" className="flex-1 flex flex-col">
+              <TabsList className="mx-4 mt-4">
+                <TabsTrigger value="components" className="flex-1 gap-2">
+                  <Cube size={16} />
+                  Components
+                </TabsTrigger>
+                <TabsTrigger value="preview" className="flex-1 gap-2">
+                  <Eye size={16} />
+                  Preview
+                </TabsTrigger>
+              </TabsList>
 
             <TabsContent value="components" className="flex-1 mt-0 overflow-hidden">
               <ScrollArea className="h-full">
@@ -378,6 +421,7 @@ export function ProjectBuilder({ project, onSave, onBack }: ProjectBuilderProps)
             </TabsContent>
           </Tabs>
         </div>
+        )}
 
         <div className="flex-1 flex overflow-hidden">
           <ScrollArea className="flex-1">

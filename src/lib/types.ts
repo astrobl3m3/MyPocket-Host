@@ -1,3 +1,13 @@
+export interface ServerSettings {
+  enabled: boolean
+  port: number
+  accessPointName: string
+  password: string
+  isPublished: boolean
+  publishedUrl?: string
+  lastPublished?: number
+}
+
 export interface Project {
   id: string
   name: string
@@ -7,6 +17,7 @@ export interface Project {
   updatedAt: number
   isArchived: boolean
   previewActive: boolean
+  serverSettings?: ServerSettings
 }
 
 export type ComponentType = 

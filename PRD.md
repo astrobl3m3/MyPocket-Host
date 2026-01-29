@@ -55,11 +55,18 @@ This application requires sophisticated state management across multiple project
 - **Success criteria**: Keyboard shortcuts work reliably (Ctrl+C/V/Z/Y, Delete); selected component highlighted with ring border; pasted components get unique IDs; shortcuts panel visible in sidebar; copy/duplicate buttons available in component toolbar
 
 ### Project Import/Export System
-- **Functionality**: Import projects from ZIP files, JSON, or raw HTML with CSS; export projects as portable packages or standalone HTML files; clone external websites from URLs using AI with enhanced prompting
+- **Functionality**: Import projects from URLs, HTML files, JSON files, or direct HTML paste; export projects as JSON or standalone HTML files; clone external websites from URLs; comprehensive import dialog with multiple methods
 - **Purpose**: Project portability, backup, sharing, external content import, and standalone deployment
-- **Trigger**: "Import" button in new project dialog, "Import HTML" in builder, "Clone URL" button on dashboard, "Export" in project menu, or "Download HTML" in builder
-- **Progression**: Import: Upload file/paste HTML/CSS/JSON → Validate → Parse to components → Preview structure → Confirm → Add to projects | Export: Select project → Choose format (JSON/HTML) → Download package | Clone: Enter URL → AI analyzes with detailed prompt → Convert to components with better fidelity → Preview → Import
-- **Success criteria**: Successfully import and export projects maintaining all assets and configuration; clone external websites with AI-powered conversion to editable components; import raw HTML+CSS and parse into editable components; import JSON component definitions; download standalone HTML files that work independently
+- **Trigger**: "Import" button on dashboard, "Import HTML" in builder, or "Export" in project menu
+- **Progression**: Import: Click Import → Choose method (URL/File Upload/HTML Paste/JSON Paste) → Enter URL or upload file or paste content → Parse content → Convert to components → Confirm → Add to projects | Export: Select project → Choose format (JSON/HTML) → Download package
+- **Success criteria**: Successfully import from URLs (JSON/HTML), file uploads (.json/.html), pasted HTML/JSON; export projects as JSON or standalone HTML; parse HTML into editable components; download fully functional standalone websites
+
+### Server & Access Point Management
+- **Functionality**: Configure and manage local development server; create mobile access point with custom name and password; toggle server on/off; publish/unpublish projects to network; real-time server status checking; generate and copy published URLs; view connection instructions
+- **Purpose**: Enable local development server hosting and mobile device access via network
+- **Trigger**: "Server" button in project builder toolbar
+- **Progression**: Open server settings → Enable server toggle → Configure access point name → Set port number → Enter password → Toggle publish → View published URL → Copy URL to clipboard → Check server status → Save settings
+- **Success criteria**: Server can be enabled/disabled; access point configurable with name, port, password; publish toggle makes project accessible; status indicator shows online/offline/checking states; published URL displayed and copyable; settings persist with project; visual indicators show server and publish status in project builder header
 
 ### Real-Time Collaborative Editing
 - **Functionality**: Multiple users can view who else is editing a project in real-time; presence indicators show active users with avatars; automatic session management with user activity tracking; version tracking for synchronization
