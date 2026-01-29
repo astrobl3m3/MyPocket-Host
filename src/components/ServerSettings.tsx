@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Slider } from '@/components/ui/slider'
 import { toast } from 'sonner'
 import QRCode from 'qrcode'
 import {
@@ -27,8 +29,11 @@ import {
   Clock,
   QrCode as QrCodeIcon,
   DownloadSimple,
+  Palette,
+  Image as ImageIcon,
+  ArrowsOut,
 } from '@phosphor-icons/react'
-import type { ServerSettings as ServerSettingsType } from '@/lib/types'
+import type { ServerSettings as ServerSettingsType, QRCodeSettings } from '@/lib/types'
 
 interface ServerSettingsProps {
   settings: ServerSettingsType
@@ -43,7 +48,18 @@ export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsPr
     settings.enabled ? 'online' : 'offline'
   )
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('')
+  const [showQRCustomization, setShowQRCustomization] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const logoImageRef = useRef<HTMLImageElement | null>(null)
+
+  const defaultQRSettings: QRCodeSettings = {
+    size: 200,
+    foregroundColor: '#000000',
+    backgroundColor: '#FFFFFF',
+    includeMargin: true,
+    errorCorrectionLevel: 'M',
+    logoSize: 40,
+  }
 
   useEffect(() => {
     setLocalSettings(settings)
@@ -54,8 +70,9 @@ export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsPr
     setLocalSettings(prevSettings => {
       const needsSSL = !prevSettings.ssl
       const needsMetrics = !prevSettings.metrics
+      const needsQRCode = !prevSettings.qrCode
       
-      if (!needsSSL && !needsMetrics) {
+      if (!needsSSL && !needsMetrics && !needsQRCode) {
         return prevSettings
       }
       
@@ -74,6 +91,9 @@ export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsPr
             requestsHistory: [],
           },
         }),
+        ...(needsQRCode && {
+          qrCode: defaultQRSettings,
+        }),
       }
     })
   }, [])
@@ -82,14 +102,32 @@ export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsPr
     const generateQRCode = async () => {
       if (localSettings.publishedUrl && canvasRef.current) {
         try {
+          const qrSettings = localSettings.qrCode || defaultQRSettings
+          
           await QRCode.toCanvas(canvasRef.current, localSettings.publishedUrl, {
-            width: 200,
-            margin: 2,
+            width: qrSettings.size,
+            margin: qrSettings.includeMargin ? 2 : 0,
             color: {
-              dark: '#000000',
-              light: '#FFFFFF',
+              dark: qrSettings.foregroundColor,
+              light: qrSettings.backgroundColor,
             },
+            errorCorrectionLevel: qrSettings.errorCorrectionLevel,
           })
+
+          if (qrSettings.logoUrl && logoImageRef.current) {
+            const ctx = canvasRef.current.getContext('2d')
+            if (ctx) {
+              const logoSize = qrSettings.logoSize
+              const x = (qrSettings.size - logoSize) / 2
+              const y = (qrSettings.size - logoSize) / 2
+              
+              ctx.fillStyle = qrSettings.backgroundColor
+              ctx.fillRect(x - 5, y - 5, logoSize + 10, logoSize + 10)
+              
+              ctx.drawImage(logoImageRef.current, x, y, logoSize, logoSize)
+            }
+          }
+          
           const dataUrl = canvasRef.current.toDataURL()
           setQrCodeDataUrl(dataUrl)
         } catch (error) {
@@ -99,9 +137,24 @@ export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsPr
     }
 
     if (localSettings.isPublished && localSettings.publishedUrl) {
-      generateQRCode()
+      if (localSettings.qrCode?.logoUrl) {
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        img.onload = () => {
+          logoImageRef.current = img
+          generateQRCode()
+        }
+        img.onerror = () => {
+          logoImageRef.current = null
+          generateQRCode()
+        }
+        img.src = localSettings.qrCode.logoUrl
+      } else {
+        logoImageRef.current = null
+        generateQRCode()
+      }
     }
-  }, [localSettings.publishedUrl, localSettings.isPublished])
+  }, [localSettings.publishedUrl, localSettings.isPublished, localSettings.qrCode])
 
   const formatBytes = (bytes: number): string => {
     if (bytes === 0) return '0 B'
@@ -187,7 +240,8 @@ export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsPr
   const handleDownloadQRCode = () => {
     if (qrCodeDataUrl) {
       const link = document.createElement('a')
-      link.download = `${localSettings.accessPointName}-qrcode.png`
+      const timestamp = new Date().toISOString().split('T')[0]
+      link.download = `${localSettings.accessPointName}-qrcode-${timestamp}.png`
       link.href = qrCodeDataUrl
       link.click()
       toast.success('QR code downloaded')
@@ -439,10 +493,278 @@ export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsPr
                     <Separator />
                     
                     <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <QrCodeIcon size={16} weight="bold" className="text-primary" />
-                        <Label className="text-[13px] font-medium">Share via QR Code</Label>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <QrCodeIcon size={16} weight="bold" className="text-primary" />
+                          <Label className="text-[13px] font-medium">Share via QR Code</Label>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowQRCustomization(!showQRCustomization)}
+                          className="gap-2 h-7 text-[12px]"
+                        >
+                          <Palette size={14} />
+                          {showQRCustomization ? 'Hide' : 'Customize'}
+                        </Button>
                       </div>
+                      
+                      {showQRCustomization && (
+                        <Card className="border-primary/20">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-[14px] flex items-center gap-2">
+                              <Palette size={16} className="text-primary" />
+                              QR Code Customization
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                              <Label className="text-[12px] flex items-center gap-2">
+                                <ArrowsOut size={14} />
+                                Size: {localSettings.qrCode?.size || 200}px
+                              </Label>
+                              <Slider
+                                value={[localSettings.qrCode?.size || 200]}
+                                onValueChange={([value]) => {
+                                  setLocalSettings(prev => ({
+                                    ...prev,
+                                    qrCode: {
+                                      ...defaultQRSettings,
+                                      ...prev.qrCode,
+                                      size: value,
+                                    },
+                                  }))
+                                }}
+                                min={100}
+                                max={400}
+                                step={10}
+                                className="w-full"
+                              />
+                              <div className="flex justify-between text-[10px] text-muted-foreground">
+                                <span>100px</span>
+                                <span>400px</span>
+                              </div>
+                            </div>
+
+                            <Separator />
+
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-2">
+                                <Label htmlFor="qr-fg-color" className="text-[12px]">
+                                  Foreground Color
+                                </Label>
+                                <div className="flex gap-2">
+                                  <Input
+                                    id="qr-fg-color"
+                                    type="color"
+                                    value={localSettings.qrCode?.foregroundColor || '#000000'}
+                                    onChange={(e) => {
+                                      setLocalSettings(prev => ({
+                                        ...prev,
+                                        qrCode: {
+                                          ...defaultQRSettings,
+                                          ...prev.qrCode,
+                                          foregroundColor: e.target.value,
+                                        },
+                                      }))
+                                    }}
+                                    className="w-16 h-9 p-1 cursor-pointer"
+                                  />
+                                  <Input
+                                    type="text"
+                                    value={localSettings.qrCode?.foregroundColor || '#000000'}
+                                    onChange={(e) => {
+                                      setLocalSettings(prev => ({
+                                        ...prev,
+                                        qrCode: {
+                                          ...defaultQRSettings,
+                                          ...prev.qrCode,
+                                          foregroundColor: e.target.value,
+                                        },
+                                      }))
+                                    }}
+                                    className="font-code text-[11px] flex-1"
+                                    placeholder="#000000"
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label htmlFor="qr-bg-color" className="text-[12px]">
+                                  Background Color
+                                </Label>
+                                <div className="flex gap-2">
+                                  <Input
+                                    id="qr-bg-color"
+                                    type="color"
+                                    value={localSettings.qrCode?.backgroundColor || '#FFFFFF'}
+                                    onChange={(e) => {
+                                      setLocalSettings(prev => ({
+                                        ...prev,
+                                        qrCode: {
+                                          ...defaultQRSettings,
+                                          ...prev.qrCode,
+                                          backgroundColor: e.target.value,
+                                        },
+                                      }))
+                                    }}
+                                    className="w-16 h-9 p-1 cursor-pointer"
+                                  />
+                                  <Input
+                                    type="text"
+                                    value={localSettings.qrCode?.backgroundColor || '#FFFFFF'}
+                                    onChange={(e) => {
+                                      setLocalSettings(prev => ({
+                                        ...prev,
+                                        qrCode: {
+                                          ...defaultQRSettings,
+                                          ...prev.qrCode,
+                                          backgroundColor: e.target.value,
+                                        },
+                                      }))
+                                    }}
+                                    className="font-code text-[11px] flex-1"
+                                    placeholder="#FFFFFF"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-2">
+                              <Label htmlFor="qr-error-correction" className="text-[12px]">
+                                Error Correction Level
+                              </Label>
+                              <Select
+                                value={localSettings.qrCode?.errorCorrectionLevel || 'M'}
+                                onValueChange={(value: 'L' | 'M' | 'Q' | 'H') => {
+                                  setLocalSettings(prev => ({
+                                    ...prev,
+                                    qrCode: {
+                                      ...defaultQRSettings,
+                                      ...prev.qrCode,
+                                      errorCorrectionLevel: value,
+                                    },
+                                  }))
+                                }}
+                              >
+                                <SelectTrigger id="qr-error-correction" className="text-[13px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="L">Low (7% recovery)</SelectItem>
+                                  <SelectItem value="M">Medium (15% recovery)</SelectItem>
+                                  <SelectItem value="Q">Quartile (25% recovery)</SelectItem>
+                                  <SelectItem value="H">High (30% recovery)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <p className="text-[10px] text-muted-foreground">
+                                Higher levels allow QR code to be scanned even if partially damaged
+                              </p>
+                            </div>
+
+                            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                              <div>
+                                <p className="text-[13px] font-medium">Include Margin</p>
+                                <p className="text-[11px] text-muted-foreground">
+                                  Add white space around QR code
+                                </p>
+                              </div>
+                              <Switch
+                                checked={localSettings.qrCode?.includeMargin ?? true}
+                                onCheckedChange={(checked) => {
+                                  setLocalSettings(prev => ({
+                                    ...prev,
+                                    qrCode: {
+                                      ...defaultQRSettings,
+                                      ...prev.qrCode,
+                                      includeMargin: checked,
+                                    },
+                                  }))
+                                }}
+                              />
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2">
+                                <ImageIcon size={14} className="text-muted-foreground" />
+                                <Label className="text-[12px] font-medium">Center Logo (Optional)</Label>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <Input
+                                  type="text"
+                                  value={localSettings.qrCode?.logoUrl || ''}
+                                  onChange={(e) => {
+                                    setLocalSettings(prev => ({
+                                      ...prev,
+                                      qrCode: {
+                                        ...defaultQRSettings,
+                                        ...prev.qrCode,
+                                        logoUrl: e.target.value,
+                                      },
+                                    }))
+                                  }}
+                                  placeholder="https://example.com/logo.png"
+                                  className="text-[12px] font-code"
+                                />
+                                <p className="text-[10px] text-muted-foreground">
+                                  Enter image URL for center logo overlay
+                                </p>
+                              </div>
+
+                              {localSettings.qrCode?.logoUrl && (
+                                <div className="space-y-2">
+                                  <Label className="text-[12px]">
+                                    Logo Size: {localSettings.qrCode?.logoSize || 40}px
+                                  </Label>
+                                  <Slider
+                                    value={[localSettings.qrCode?.logoSize || 40]}
+                                    onValueChange={([value]) => {
+                                      setLocalSettings(prev => ({
+                                        ...prev,
+                                        qrCode: {
+                                          ...defaultQRSettings,
+                                          ...prev.qrCode,
+                                          logoSize: value,
+                                        },
+                                      }))
+                                    }}
+                                    min={20}
+                                    max={100}
+                                    step={5}
+                                    className="w-full"
+                                  />
+                                  <div className="flex justify-between text-[10px] text-muted-foreground">
+                                    <span>20px</span>
+                                    <span>100px</span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex gap-2 pt-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setLocalSettings(prev => ({
+                                    ...prev,
+                                    qrCode: defaultQRSettings,
+                                  }))
+                                  toast.success('Reset to default settings')
+                                }}
+                                className="flex-1 text-[12px]"
+                              >
+                                Reset to Defaults
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
                       
                       <div className="flex flex-col items-center gap-3 p-4 bg-muted/50 rounded-lg">
                         <canvas
@@ -450,15 +772,24 @@ export function ServerSettings({ settings, onUpdate, onClose }: ServerSettingsPr
                           className="hidden"
                         />
                         {qrCodeDataUrl && (
-                          <div className="relative bg-white p-3 rounded-lg shadow-sm border-2 border-border">
+                          <div 
+                            className="relative rounded-lg shadow-sm border-2 border-border"
+                            style={{ 
+                              backgroundColor: localSettings.qrCode?.backgroundColor || '#FFFFFF',
+                              padding: localSettings.qrCode?.includeMargin ? '12px' : '4px'
+                            }}
+                          >
                             <img 
                               src={qrCodeDataUrl} 
                               alt="QR Code for published URL" 
-                              className="w-[200px] h-[200px]"
+                              style={{
+                                width: `${localSettings.qrCode?.size || 200}px`,
+                                height: `${localSettings.qrCode?.size || 200}px`,
+                              }}
                             />
                           </div>
                         )}
-                        <p className="text-[12px] text-center text-muted-foreground max-w-[250px]">
+                        <p className="text-[12px] text-center text-muted-foreground max-w-[300px]">
                           Scan this QR code with your mobile device to quickly access the published project
                         </p>
                         <Button

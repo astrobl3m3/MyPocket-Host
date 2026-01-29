@@ -1,3 +1,13 @@
+export interface QRCodeSettings {
+  size: number
+  foregroundColor: string
+  backgroundColor: string
+  includeMargin: boolean
+  errorCorrectionLevel: 'L' | 'M' | 'Q' | 'H'
+  logoUrl?: string
+  logoSize: number
+}
+
 export interface ServerSettings {
   enabled: boolean
   port: number
@@ -13,6 +23,7 @@ export interface ServerSettings {
     autoGenerate?: boolean
   }
   metrics?: ProjectMetrics
+  qrCode?: QRCodeSettings
 }
 
 export interface ProjectMetrics {
